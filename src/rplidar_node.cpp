@@ -351,7 +351,7 @@ void rplidar_node::publish_loop()
   double scan_duration = (end_scan_time - start_scan_time).nanoseconds() * 1E-9;
 
   if (op_result != RESULT_OK) {
-    RCLCPP_ERROR(this->get_logger(), "Error Killing process");
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process. No publishing Data");
     rclcpp::shutdown();
     return;
   }

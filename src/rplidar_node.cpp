@@ -64,7 +64,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     RPlidarDriver::CreateDriver(rp::standalone::rplidar::DRIVER_TYPE_SERIALPORT);
 
   RCLCPP_INFO(this->get_logger(), "Checking Driver");
-  if (nullptr == m_drv) {
+  if (nullptr == m_drv || m_drv == NULL) {
     /* don't start spinning without a driver object */
     RCLCPP_ERROR(this->get_logger(), "Failed to construct driver");
     rclcpp::shutdown();

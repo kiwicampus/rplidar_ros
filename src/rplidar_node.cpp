@@ -96,6 +96,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
   // get rplidar device info
   if (!getRPLIDARDeviceInfo()) {
     /* don't continue */
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process");
     RPlidarDriver::DisposeDriver(m_drv);
     rclcpp::shutdown();
     return;
@@ -103,6 +104,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
 
   // check health...
   if (!checkRPLIDARHealth()) {
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process");
     RPlidarDriver::DisposeDriver(m_drv);
     rclcpp::shutdown();
     return;
@@ -255,6 +257,8 @@ bool rplidar_node::checkRPLIDARHealth() const
 void rplidar_node::stop_motor(const EmptyRequest req, EmptyResponse res)
 {
   if (nullptr == m_drv) {
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process");
+    rclcpp::shutdown();
     return;
   }
 
@@ -266,6 +270,8 @@ void rplidar_node::stop_motor(const EmptyRequest req, EmptyResponse res)
 void rplidar_node::start_motor(const EmptyRequest req, EmptyResponse res)
 {
   if (nullptr == m_drv) {
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process");
+    rclcpp::shutdown();
     return;
   }
 
@@ -345,6 +351,8 @@ void rplidar_node::publish_loop()
   double scan_duration = (end_scan_time - start_scan_time).nanoseconds() * 1E-9;
 
   if (op_result != RESULT_OK) {
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process");
+    rclcpp::shutdown();
     return;
   }
   op_result = m_drv->ascendScanData(nodes.get(), count);

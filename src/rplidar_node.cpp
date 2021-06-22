@@ -63,6 +63,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     RPlidarDriver::CreateDriver(rp::standalone::rplidar::DRIVER_TYPE_TCP) :
     RPlidarDriver::CreateDriver(rp::standalone::rplidar::DRIVER_TYPE_SERIALPORT);
 
+  RCLCPP_INFO(this->get_logger(), "Checking Driver");
   if (nullptr == m_drv) {
     /* don't start spinning without a driver object */
     RCLCPP_ERROR(this->get_logger(), "Failed to construct driver");
@@ -70,6 +71,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     return;
   }
 
+  RCLCPP_INFO(this->get_logger(), "Connecting Device");
   if (channel_type_ == "tcp") {
     // make connection...
     if (IS_FAIL(m_drv->connect(tcp_ip_.c_str(), (_u32)tcp_port_))) {
@@ -93,6 +95,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     }
   }
 
+  RCLCPP_INFO(this->get_logger(), "Checking Device Info");
   // get rplidar device info
   if (!getRPLIDARDeviceInfo()) {
     /* don't continue */
@@ -102,6 +105,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     return;
   }
 
+  RCLCPP_INFO(this->get_logger(), "Checking Device Health");
   // check health...
   if (!checkRPLIDARHealth()) {
     RCLCPP_ERROR(this->get_logger(), "Error Killing process");
@@ -110,11 +114,13 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     return;
   }
 
+  RCLCPP_INFO(this->get_logger(), "Starting Motor");
   /* start motor */
   m_drv->startMotor();
 
   if (!set_scan_mode()) {
     /* set the scan mode */
+    RCLCPP_ERROR(this->get_logger(), "Release Device. Error in Scan Mode");
     m_drv->stop();
     m_drv->stopMotor();
     RPlidarDriver::DisposeDriver(m_drv);
@@ -123,7 +129,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
   }
 
   /* done setting up RPLIDAR stuff, now set up ROS 2 stuff */
-
+  RCLCPP_INFO(this->get_logger(), "Creating ROS2 Stuff");
   /* create the publisher for "/scan" */
   m_publisher = this->create_publisher<LaserScan>(topic_name_, 10);
 
@@ -142,6 +148,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
 
 rplidar_node::~rplidar_node()
 {
+  RCLCPP_ERROR(this->get_logger(), "Destructor");
   m_drv->stop();
   m_drv->stopMotor();
   RPlidarDriver::DisposeDriver(m_drv);
@@ -257,7 +264,7 @@ bool rplidar_node::checkRPLIDARHealth() const
 void rplidar_node::stop_motor(const EmptyRequest req, EmptyResponse res)
 {
   if (nullptr == m_drv) {
-    RCLCPP_ERROR(this->get_logger(), "Error Killing process");
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process. No Driver to Stop Motor.");
     rclcpp::shutdown();
     return;
   }

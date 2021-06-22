@@ -66,6 +66,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
   if (nullptr == m_drv) {
     /* don't start spinning without a driver object */
     RCLCPP_ERROR(this->get_logger(), "Failed to construct driver");
+    rclcpp::shutdown();
     return;
   }
 
@@ -77,6 +78,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
         "Error, cannot bind to the specified TCP host '%s:%ud'",
         tcp_ip_.c_str(), static_cast<unsigned int>(tcp_port_));
       RPlidarDriver::DisposeDriver(m_drv);
+      rclcpp::shutdown();
       return;
     }
   } else {
@@ -86,6 +88,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
         this->get_logger(), "Error, cannot bind to the specified serial port '%s'.",
         serial_port_.c_str());
       RPlidarDriver::DisposeDriver(m_drv);
+      rclcpp::shutdown();
       return;
     }
   }
@@ -94,12 +97,14 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
   if (!getRPLIDARDeviceInfo()) {
     /* don't continue */
     RPlidarDriver::DisposeDriver(m_drv);
+    rclcpp::shutdown();
     return;
   }
 
   // check health...
   if (!checkRPLIDARHealth()) {
     RPlidarDriver::DisposeDriver(m_drv);
+    rclcpp::shutdown();
     return;
   }
 
@@ -111,6 +116,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     m_drv->stop();
     m_drv->stopMotor();
     RPlidarDriver::DisposeDriver(m_drv);
+    rclcpp::shutdown();
     exit(1);
   }
 
@@ -137,6 +143,7 @@ rplidar_node::~rplidar_node()
   m_drv->stop();
   m_drv->stopMotor();
   RPlidarDriver::DisposeDriver(m_drv);
+  rclcpp::shutdown();
 }
 
 void rplidar_node::publish_scan(

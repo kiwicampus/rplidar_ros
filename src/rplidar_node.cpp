@@ -117,6 +117,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Starting Motor");
   /* start motor */
   m_drv->startMotor();
+  m_drv->startScan(0, 1);
 
   if (!set_scan_mode()) {
     /* set the scan mode */

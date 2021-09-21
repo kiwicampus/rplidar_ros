@@ -90,7 +90,7 @@ RPlidarDriver * RPlidarDriver::CreateDriver(_u32 drivertype)
     case DRIVER_TYPE_TCP:
          return new RPlidarDriverTCP();
     default:
-        return NULL;
+        return nullptr;
     }
 }
 

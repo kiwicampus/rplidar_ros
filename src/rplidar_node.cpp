@@ -271,6 +271,7 @@ void rplidar_node::stop_motor(const EmptyRequest req, EmptyResponse res)
   }
 
   RCLCPP_DEBUG(this->get_logger(), "Call to '%s'", __FUNCTION__);
+  m_timer->cancel();
   m_drv->stop();
   m_drv->stopMotor();
 }
@@ -286,6 +287,7 @@ void rplidar_node::start_motor(const EmptyRequest req, EmptyResponse res)
   RCLCPP_DEBUG(this->get_logger(), "Call to '%s'", __FUNCTION__);
   m_drv->startMotor();
   m_drv->startScan(0, 1);
+  m_timer->reset();
 }
 
 bool rplidar_node::set_scan_mode()

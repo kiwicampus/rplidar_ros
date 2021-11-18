@@ -132,7 +132,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
   /* done setting up RPLIDAR stuff, now set up ROS 2 stuff */
   RCLCPP_INFO(this->get_logger(), "Creating ROS2 Stuff");
   /* create the publisher for "/scan" */
-  m_publisher = this->create_publisher<LaserScan>(topic_name_, 10);
+  m_publisher = this->create_publisher<LaserScan>(topic_name_, rclcpp::QoS(rclcpp::SensorDataQoS()));
 
   /* create stop motor service */
   m_stop_motor_service = this->create_service<std_srvs::srv::Empty>(

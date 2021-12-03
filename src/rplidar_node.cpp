@@ -128,7 +128,8 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     rclcpp::shutdown();
     exit(1);
   }
-
+  
+  m_state = true;
   /* done setting up RPLIDAR stuff, now set up ROS 2 stuff */
   RCLCPP_INFO(this->get_logger(), "Creating ROS2 Stuff");
   /* create the publisher for "/scan" */

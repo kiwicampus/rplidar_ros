@@ -2221,7 +2221,7 @@ u_result RPlidarDriverImplCommon::startMotor()
     else {
         setLidarSpinSpeed(600);//set default rpm to tof lidar
     }
-
+    return RESULT_OK;
 }
 
 u_result RPlidarDriverImplCommon::stopMotor()
@@ -2237,6 +2237,7 @@ u_result RPlidarDriverImplCommon::stopMotor()
         delay(500);
         return RESULT_OK;
     }
+    return RESULT_OK;
 }
 
 void RPlidarDriverImplCommon::_disableDataGrabbing()

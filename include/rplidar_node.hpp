@@ -96,7 +96,7 @@ public:
   void stop_motor(const EmptyRequest req, EmptyResponse res);
   void start_motor(const EmptyRequest req, EmptyResponse res);
 
-  bool m_state = false;
+  volatile bool m_state = true;
 private:
   bool getRPLIDARDeviceInfo() const;
   bool checkRPLIDARHealth() const;

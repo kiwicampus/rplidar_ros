@@ -128,6 +128,9 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     
     exit(1);
   }
+  
+  /* ready to publish data */
+  m_is_scanning = true;
 
   /* done setting up RPLIDAR stuff, now set up ROS 2 stuff */
   RCLCPP_INFO(this->get_logger(), "Creating ROS2 Stuff");
@@ -273,14 +276,18 @@ void rplidar_node::stop_motor(const EmptyRequest req, EmptyResponse res)
   }
 
   RCLCPP_DEBUG(this->get_logger(), "Call to '%s'", __FUNCTION__);
+
+  m_is_scanning = false;
+
   m_drv->stop();
   m_drv->stopMotor();
+
 }
 
 void rplidar_node::start_motor(const EmptyRequest req, EmptyResponse res)
 {
   if (nullptr == m_drv) {
-    RCLCPP_ERROR(this->get_logger(), "Error Killing process");
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process. No Driver to Start Motor");
     
     return;
   }
@@ -288,6 +295,7 @@ void rplidar_node::start_motor(const EmptyRequest req, EmptyResponse res)
   RCLCPP_DEBUG(this->get_logger(), "Call to '%s'", __FUNCTION__);
   m_drv->startMotor();
   m_drv->startScan(0, 1);
+  m_is_scanning = true;
 }
 
 bool rplidar_node::set_scan_mode()
@@ -349,73 +357,77 @@ bool rplidar_node::set_scan_mode()
 
 void rplidar_node::publish_loop()
 {
-  rclcpp::Time start_scan_time;
-  rclcpp::Time end_scan_time;
-  u_result op_result;
-  size_t count = 360 * 8;
-  auto nodes = std::make_unique<rplidar_response_measurement_node_hq_t[]>(count);
+  /* Conditional to avoid try to read when the motor is stopped */
+  if (m_is_scanning)
+  {
+    rclcpp::Time start_scan_time;
+    rclcpp::Time end_scan_time;
+    u_result op_result;
+    size_t count = 360 * 8;
+    auto nodes = std::make_unique<rplidar_response_measurement_node_hq_t[]>(count);
 
-  start_scan_time = this->now();
-  op_result = m_drv->grabScanDataHq(nodes.get(), count);
-  end_scan_time = this->now();
-  double scan_duration = (end_scan_time - start_scan_time).nanoseconds() * 1E-9;
+    start_scan_time = this->now();
+    op_result = m_drv->grabScanDataHq(nodes.get(), count);
+    end_scan_time = this->now();
+    double scan_duration = (end_scan_time - start_scan_time).nanoseconds() * 1E-9;
 
-  if (op_result != RESULT_OK) {
-    RCLCPP_ERROR(this->get_logger(), "Error Killing process. No publishing Data");
-    
-    return;
-  }
-  op_result = m_drv->ascendScanData(nodes.get(), count);
-  angle_min = deg_2_rad(0.0f);
-  angle_max = deg_2_rad(359.0f);
-  if (op_result == RESULT_OK) {
-    if (angle_compensate_) {
-      const int angle_compensate_nodes_count = 360 * m_angle_compensate_multiple;
-      int angle_compensate_offset = 0;
-      auto angle_compensate_nodes = std::make_unique<rplidar_response_measurement_node_hq_t[]>(
-        angle_compensate_nodes_count);
-      memset(
-        angle_compensate_nodes.get(), 0,
-        angle_compensate_nodes_count * sizeof(rplidar_response_measurement_node_hq_t));
+    if (op_result != RESULT_OK) {
+      RCLCPP_ERROR(this->get_logger(), "Error Killing process. No publishing Data");
+      
+      return;
+    }
+    op_result = m_drv->ascendScanData(nodes.get(), count);
+    angle_min = deg_2_rad(0.0f);
+    angle_max = deg_2_rad(359.0f);
+    if (op_result == RESULT_OK) {
+      if (angle_compensate_) {
+        const int angle_compensate_nodes_count = 360 * m_angle_compensate_multiple;
+        int angle_compensate_offset = 0;
+        auto angle_compensate_nodes = std::make_unique<rplidar_response_measurement_node_hq_t[]>(
+          angle_compensate_nodes_count);
+        memset(
+          angle_compensate_nodes.get(), 0,
+          angle_compensate_nodes_count * sizeof(rplidar_response_measurement_node_hq_t));
 
-      size_t i = 0, j = 0;
-      for (; i < count; i++) {
-        if (nodes[i].dist_mm_q2 != 0) {
-          float angle = getAngle(nodes[i]);
-          int angle_value = (int)(angle * m_angle_compensate_multiple);
-          if ((angle_value - angle_compensate_offset) < 0) {angle_compensate_offset = angle_value;}
-          for (j = 0; j < m_angle_compensate_multiple; j++) {
-            angle_compensate_nodes[angle_value - angle_compensate_offset + j] = nodes[i];
+        size_t i = 0, j = 0;
+        for (; i < count; i++) {
+          if (nodes[i].dist_mm_q2 != 0) {
+            float angle = getAngle(nodes[i]);
+            int angle_value = (int)(angle * m_angle_compensate_multiple);
+            if ((angle_value - angle_compensate_offset) < 0) {angle_compensate_offset = angle_value;}
+            for (j = 0; j < m_angle_compensate_multiple; j++) {
+              angle_compensate_nodes[angle_value - angle_compensate_offset + j] = nodes[i];
+            }
           }
         }
-      }
 
-      publish_scan(scan_duration, std::move(angle_compensate_nodes), angle_compensate_nodes_count);
-    } else {
-      int start_node = 0, end_node = 0;
-      int i = 0;
-      // find the first valid node and last valid node
-      while (nodes[i++].dist_mm_q2 == 0) {}
-      start_node = i - 1;
-      i = count - 1;
-      while (nodes[i--].dist_mm_q2 == 0) {}
-      end_node = i + 1;
+        publish_scan(scan_duration, std::move(angle_compensate_nodes), angle_compensate_nodes_count);
+      } else {
+        int start_node = 0, end_node = 0;
+        int i = 0;
+        // find the first valid node and last valid node
+        while (nodes[i++].dist_mm_q2 == 0) {}
+        start_node = i - 1;
+        i = count - 1;
+        while (nodes[i--].dist_mm_q2 == 0) {}
+        end_node = i + 1;
 
-      angle_min = deg_2_rad(getAngle(nodes[start_node]));
-      angle_max = deg_2_rad(getAngle(nodes[end_node]));
-      auto valid = std::make_unique<rplidar_response_measurement_node_hq_t[]>(
-        end_node - start_node + 1);
-      for (size_t x = start_node, y = 0; x < end_node; ++x, ++y) {
-        valid[y] = nodes[x];
+        angle_min = deg_2_rad(getAngle(nodes[start_node]));
+        angle_max = deg_2_rad(getAngle(nodes[end_node]));
+        auto valid = std::make_unique<rplidar_response_measurement_node_hq_t[]>(
+          end_node - start_node + 1);
+        for (size_t x = start_node, y = 0; x < end_node; ++x, ++y) {
+          valid[y] = nodes[x];
+        }
+        publish_scan(scan_duration, std::move(valid), end_node - start_node + 1);
       }
-      publish_scan(scan_duration, std::move(valid), end_node - start_node + 1);
+    } else if (op_result == RESULT_OPERATION_FAIL) {
+      // All the data is invalid, just publish them
+      float angle_min = deg_2_rad(0.0f);
+      float angle_max = deg_2_rad(359.0f);
+
+      publish_scan(scan_duration, std::move(nodes), count);
     }
-  } else if (op_result == RESULT_OPERATION_FAIL) {
-    // All the data is invalid, just publish them
-    float angle_min = deg_2_rad(0.0f);
-    float angle_max = deg_2_rad(359.0f);
-
-    publish_scan(scan_duration, std::move(nodes), count);
   }
 }
 

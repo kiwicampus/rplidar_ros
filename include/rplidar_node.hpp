@@ -97,6 +97,8 @@ public:
   void start_motor(const EmptyRequest req, EmptyResponse res);
 
   bool m_state = true;
+  bool m_is_scanning = false;
+
 private:
   bool getRPLIDARDeviceInfo() const;
   bool checkRPLIDARHealth() const;

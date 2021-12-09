@@ -64,7 +64,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions& options) : rclcpp::Node("r
     {
         /* don't start spinning without a driver object */
         RCLCPP_ERROR(this->get_logger(), "Failed to construct driver");
-        rclcpp::shutdown();
+        
         return;
     }
 
@@ -77,7 +77,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions& options) : rclcpp::Node("r
             RCLCPP_ERROR(this->get_logger(), "Error, cannot bind to the specified TCP host '%s:%ud'", tcp_ip_.c_str(),
                          static_cast<unsigned int>(tcp_port_));
             RPlidarDriver::DisposeDriver(m_drv);
-            rclcpp::shutdown();
+            
             return;
         }
     }
@@ -89,7 +89,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions& options) : rclcpp::Node("r
             RCLCPP_ERROR(this->get_logger(), "Error, cannot bind to the specified serial port '%s'.",
                          serial_port_.c_str());
             RPlidarDriver::DisposeDriver(m_drv);
-            rclcpp::shutdown();
+            
             return;
         }
     }
@@ -101,7 +101,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions& options) : rclcpp::Node("r
         /* don't continue */
         RCLCPP_ERROR(this->get_logger(), "Error Killing process");
         RPlidarDriver::DisposeDriver(m_drv);
-        rclcpp::shutdown();
+        
         return;
     }
 
@@ -111,7 +111,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions& options) : rclcpp::Node("r
     {
         RCLCPP_ERROR(this->get_logger(), "Error Killing process");
         RPlidarDriver::DisposeDriver(m_drv);
-        rclcpp::shutdown();
+        
         return;
     }
 
@@ -131,7 +131,6 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions& options) : rclcpp::Node("r
         m_drv->stop();
         m_drv->stopMotor();
         RPlidarDriver::DisposeDriver(m_drv);
-        rclcpp::shutdown();
         exit(1);
     }
 
@@ -149,15 +148,17 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions& options) : rclcpp::Node("r
         "start_motor", std::bind(&rplidar_node::start_motor, this, std::placeholders::_1, std::placeholders::_2));
     /* start timer */
     m_timer = this->create_wall_timer(1ms, std::bind(&rplidar_node::publish_loop, this));
+    
+    m_state = false;
 }
 
 rplidar_node::~rplidar_node()
 {
-    RCLCPP_ERROR(this->get_logger(), "Destructor");
-    m_drv->stop();
-    m_drv->stopMotor();
-    RPlidarDriver::DisposeDriver(m_drv);
-    rclcpp::shutdown();
+  RCLCPP_ERROR(this->get_logger(), "Destructor");
+  m_timer->cancel();
+  m_drv->stop();
+  m_drv->stopMotor();
+  RPlidarDriver::DisposeDriver(m_drv);
 }
 
 void rplidar_node::publish_scan(const double scan_time, ResponseNodeArray nodes, size_t node_count)
@@ -282,32 +283,29 @@ bool rplidar_node::checkRPLIDARHealth() const
 
 void rplidar_node::stop_motor(const EmptyRequest req, EmptyResponse res)
 {
-    if (nullptr == m_drv)
-    {
-        RCLCPP_ERROR(this->get_logger(), "Error Killing process. No Driver to Stop Motor.");
-        rclcpp::shutdown();
-        return;
-    }
-
-    RCLCPP_DEBUG(this->get_logger(), "Call to '%s'", __FUNCTION__);
-    m_timer->cancel();
-    m_drv->stop();
-    m_drv->stopMotor();
+  if (nullptr == m_drv) {
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process. No Driver to Stop Motor.");
+    
+    return;
+  }
+  RCLCPP_DEBUG(this->get_logger(), "Call to '%s'", __FUNCTION__);
+  m_timer->cancel();
+  m_drv->stop();
+  m_drv->stopMotor();
 }
 
 void rplidar_node::start_motor(const EmptyRequest req, EmptyResponse res)
 {
-    if (nullptr == m_drv)
-    {
-        RCLCPP_ERROR(this->get_logger(), "Error Killing process");
-        rclcpp::shutdown();
-        return;
-    }
+  if (nullptr == m_drv) {
+    RCLCPP_ERROR(this->get_logger(), "Error Killing process. No Driver to Start Motor");
+    
+    return;
+  }
 
-    RCLCPP_DEBUG(this->get_logger(), "Call to '%s'", __FUNCTION__);
-    m_drv->startMotor();
-    m_drv->startScan(0, 1);
-    m_timer->reset();
+  RCLCPP_DEBUG(this->get_logger(), "Call to '%s'", __FUNCTION__);
+  m_drv->startMotor();
+  m_drv->startScan(0, 1);
+  m_timer->reset();
 }
 
 bool rplidar_node::set_scan_mode()
@@ -386,7 +384,7 @@ void rplidar_node::publish_loop()
     if (op_result != RESULT_OK)
     {
         RCLCPP_ERROR(this->get_logger(), "Error Killing process. No publishing Data");
-        rclcpp::shutdown();
+        
         return;
     }
     op_result = m_drv->ascendScanData(nodes.get(), count);

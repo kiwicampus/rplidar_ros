@@ -22,10 +22,10 @@ std::shared_ptr<rplidar_ros::rplidar_node> node;
 
 void kill_process(int sig)
 {
-  printf("[RPLIDAR]: Kill Child.\n");
+  printf("[RPLIDAR]: Cheking rplidar configuration.\n");
   if (node->m_state)
   {
-    printf("[RPLIDAR]: Killing process.\n");
+    printf("[RPLIDAR]: Bad configuration. Killing process.\n");
     exit(1);
   }
 }
@@ -35,7 +35,7 @@ int main(int argc, char ** argv)
   rclcpp::init(argc, argv);
   signal(SIGALRM,(void (*)(int))kill_process);
     
-  alarm(10);
+  alarm(15);
   node = std::make_shared<rplidar_ros::rplidar_node>(rclcpp::NodeOptions());
   rclcpp::spin(node);
   rclcpp::shutdown();

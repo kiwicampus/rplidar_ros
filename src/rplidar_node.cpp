@@ -114,8 +114,6 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     return;
   }
 
-  m_state = false;
-
   RCLCPP_INFO(this->get_logger(), "Starting Motor");
   /* start motor */
   m_drv->startMotor();
@@ -147,6 +145,8 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     std::bind(&rplidar_node::start_motor, this, std::placeholders::_1, std::placeholders::_2));
   /* start timer */
   m_timer = this->create_wall_timer(1ms, std::bind(&rplidar_node::publish_loop, this));
+
+  m_state = false;
 }
 
 rplidar_node::~rplidar_node()

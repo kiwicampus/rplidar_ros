@@ -414,7 +414,8 @@ void rplidar_node::publish_loop()
       }
       publish_scan(scan_duration, std::move(valid), end_node - start_node + 1);
     }
-  } else if (op_result == RESULT_OPERATION_FAIL) {
+  } 
+  else if (op_result == RESULT_OPERATION_FAIL) {
     // All the data is invalid, just publish them
     float angle_min = deg_2_rad(0.0f);
     float angle_max = deg_2_rad(359.0f);

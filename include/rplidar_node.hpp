@@ -41,6 +41,10 @@
 #include <rplidar.h>
 #include <visibility.h>
 
+#include <sys/types.h> /* needed to use pid_t, etc. */
+#include <unistd.h>    /*  LINUX constants and functions (fork(), etc.) */
+#include <signal.h>
+
 #include <chrono>
 
 #ifndef _countof
@@ -90,6 +94,8 @@ public:
   void stop_motor(const EmptyRequest req, EmptyResponse res);
   void start_motor(const EmptyRequest req, EmptyResponse res);
 
+  bool m_state = true;
+  
 private:
   bool getRPLIDARDeviceInfo() const;
   bool checkRPLIDARHealth() const;

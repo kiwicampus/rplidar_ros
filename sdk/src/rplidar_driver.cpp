@@ -2237,7 +2237,6 @@ u_result RPlidarDriverImplCommon::stopMotor()
         delay(500);
         return RESULT_OK;
     }
-    return RESULT_OK;
 }
 
 void RPlidarDriverImplCommon::_disableDataGrabbing()

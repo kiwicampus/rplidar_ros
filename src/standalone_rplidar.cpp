@@ -32,6 +32,12 @@ void kill_process(int sig)
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
+
+  /* In order to kill the proccess when the ROS2 node got stuck, an alarm was defined to kill it and relaunching it
+    Consideretions: 
+    1. The ROS2 timer got stuck if it's defined whether in the rplidar_node.cpp or here.
+    2. SIGALRM is a interruption signal that is sent to a process when a timer expires.
+   */
   signal(SIGALRM,(void (*)(int))kill_process);
 
   alarm(15);

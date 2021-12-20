@@ -7,7 +7,7 @@ def generate_launch_description():
         Node(
             node_name='rplidar_composition',
             package='rplidar_ros',
-            node_executable='rplidar_composition',
+            executable='rplidar_composition',
             output='screen',
             parameters=[{
                 'serial_port': '/dev/ttyUSB0',
@@ -21,7 +21,7 @@ def generate_launch_description():
         Node(
             node_name='rplidarNodeClient',
             package='rplidar_ros',
-            node_executable='rplidarNodeClient',
+            executable='rplidarNodeClient',
             output='screen',
         ),
     ])

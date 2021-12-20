@@ -16,10 +16,34 @@
 #include <rplidar_node.hpp>
 #include <rclcpp/rclcpp.hpp>
 
+//Global
+std::shared_ptr<rplidar_ros::rplidar_node> node;
+
+void kill_process(int sig)
+{
+  printf("[RPLIDAR]: Cheking rplidar configuration.\n");
+  if (node->m_state)
+  {
+    printf("[RPLIDAR]: Bad configuration. Killing process.\n");
+    exit(1);
+  }
+}
+
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<rplidar_ros::rplidar_node>(rclcpp::NodeOptions()));
+
+  /* In order to kill the proccess when the ROS2 node got stuck, an alarm was defined to kill it and relaunching it
+    Consideretions: 
+    1. The ROS2 timer got stuck if it's defined whether in the rplidar_node.cpp or here.
+    2. SIGALRM is a interruption signal that is sent to a process when a timer expires.
+   */
+  signal(SIGALRM,(void (*)(int))kill_process);
+
+  alarm(15);
+  node = std::make_shared<rplidar_ros::rplidar_node>(rclcpp::NodeOptions());
+  rclcpp::spin(node);
   rclcpp::shutdown();
+  printf("[RPLIDAR]: Exit process.\n");
   return 0;
 }

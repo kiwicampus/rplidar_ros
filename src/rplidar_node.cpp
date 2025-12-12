@@ -131,8 +131,14 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
 
   /* done setting up RPLIDAR stuff, now set up ROS 2 stuff */
   RCLCPP_INFO(this->get_logger(), "Creating ROS2 Stuff");
+  auto transient_qos = rclcpp::QoS(rclcpp::KeepLast(1)).transient_local();
   /* create the publisher for "/scan" */
   m_publisher = this->create_publisher<LaserScan>(topic_name_, 10);
+
+  m_firmware_version_pub = this->create_publisher<std_msgs::msg::String>(
+    "/scan/firmware_version", transient_qos);
+  m_serial_number_pub = this->create_publisher<std_msgs::msg::String>(
+    "/scan/serial_number", transient_qos);
 
   /* create stop motor service */
   m_stop_motor_service = this->create_service<std_srvs::srv::Empty>(
@@ -232,17 +238,26 @@ bool rplidar_node::getRPLIDARDeviceInfo() const
   }
 
   // print out the device serial number, firmware and hardware version number..
-  std::string serial_no{"RPLIDAR S/N: "};
+  std::string serial_no{""};
   for (int pos = 0; pos < 16; ++pos) {
     char buff[3];
     snprintf(buff, sizeof(buff), "%02X", devinfo.serialnum[pos]);
     serial_no += buff;
   }
-  RCLCPP_INFO(this->get_logger(), "%s", serial_no.c_str());
+  RCLCPP_INFO(this->get_logger(), "RPLIDAR S/N: %s", serial_no.c_str());
+  char firmware_str[16];
+  snprintf(firmware_str, sizeof(firmware_str), "%d.%02d", devinfo.firmware_version >> 8,
+          devinfo.firmware_version & 0xFF);
   RCLCPP_INFO(
-    this->get_logger(), "Firmware Ver: %d.%02d", devinfo.firmware_version >> 8,
-    devinfo.firmware_version & 0xFF);
+    this->get_logger(), "Firmware Ver: %s", firmware_str);
   RCLCPP_INFO(this->get_logger(), "Hardware Rev: %d", static_cast<int>(devinfo.hardware_version));
+
+  auto serial_number_msg = std_msgs::msg::String();
+  serial_number_msg.data = serial_no;
+  m_serial_number_pub->publish(serial_number_msg);
+  auto firmware_msg = std_msgs::msg::String();
+  firmware_msg.data = firmware_str;
+  m_firmware_version_pub->publish(firmware_msg);
   return true;
 }
 

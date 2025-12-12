@@ -36,6 +36,7 @@
 #include <rclcpp/time_source.hpp>
 
 #include <sensor_msgs/msg/laser_scan.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <std_srvs/srv/empty.hpp>
 
 #include <rplidar.h>
@@ -117,6 +118,8 @@ private:
   std::string scan_mode_;
   /* Publisher */
   LaserScanPub m_publisher;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_firmware_version_pub;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr m_serial_number_pub;
   /* Services */
   StopMotorService m_stop_motor_service;
   StartMotorService m_start_motor_service;

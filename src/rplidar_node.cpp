@@ -415,10 +415,20 @@ void rplidar_node::publish_loop()
     }
   } else if (op_result == RESULT_OPERATION_FAIL) {
     // All the data is invalid, just publish them
-    float angle_min = deg_2_rad(0.0f);
-    float angle_max = deg_2_rad(359.0f);
+    angle_min = deg_2_rad(0.0f);
+    angle_max = deg_2_rad(359.0f);
 
     publish_scan(scan_duration, std::move(nodes), count);
+  }
+  else if (op_result == RESULT_OPERATION_STOP) {
+    rplidar_response_device_health_t healthinfo;
+    m_drv->getHealth(healthinfo);
+    RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 10000, "Lidar is stopped, health status : %d, error code: %d", healthinfo.status, healthinfo.error_code);
+  }
+  else if (op_result == RESULT_OPERATION_TIMEOUT) {
+    rplidar_response_device_health_t healthinfo;
+    m_drv->getHealth(healthinfo);
+    RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 10000, "Lidar is timeout, health status : %d, error code: %d", healthinfo.status, healthinfo.error_code);
   }
 }
 
